@@ -1,0 +1,748 @@
+#define BT_CONN 1
+#define OUTBOX 1
+#define INBOX 2
+//*******************************************************
+//Funktion zum Senden der Medikamentenauswahl
+void bluetooth_send(int medi_nr){
+long counter;
+long init = -5;
+long zahl = medi_nr;
+PlayTone(440,200);
+Wait(100);
+while(TRUE){
+//PlayTone(220,100);
+Wait(100);
+if(BluetoothStatus(BT_CONN)==NO_ERR){
+//TextOut(5,LCD_LINE2,"Connection Established");
+PlayTone(440,100);
+SendRemoteNumber(BT_CONN,OUTBOX,init);
+until(BluetoothStatus(BT_CONN)==NO_ERR);
+//TextOut(5,LCD_LINE2,"Sent Drug" + NumToStr(zahl));
+until(ReceiveRemoteNumber(INBOX,true,counter)==NO_ERR);
+//ClearScreen();
+Wait(500);
+if(counter==10){
+//TextOut(5,LCD_LINE2,NumToStr(zahl));
+SendRemoteNumber(BT_CONN,OUTBOX,zahl);
+until(BluetoothStatus(BT_CONN)==NO_ERR);
+until(ReceiveRemoteNumber(INBOX,true,counter)==NO_ERR);
+Wait(500);
+if(counter==20){
+break;
+}
+}
+}
+}
+}
+//*****************************************************************
+// Funktion zur Auswahl des gewünschten Medikaments
+int select_medi(){
+// Nummernblock initialisieren
+SetSensor(S1, SENSOR_TOUCH);
+SetSensorMode(S1, SENSOR_MODE_RAW);
+int nr_block;
+int medi_nr;
+// While loop, damit Programm ständig läuft
+while (TRUE){
+// sicherstellen, dass medi_nr und nr_block 0 sind.
+medi_nr = 0;
+nr_block = 0;
+// eindeutige Auwahl sicherstellen
+while (medi_nr == 0){
+// Nutzer zur Medikamentauswahl auffordern
+// Warten bis eine Taste gedrückt wird
+nr_block = 1024;
+until (nr_block < 1000)
+32
+{
+nr_block = Sensor(S1);
+}
+//Auswahl in Variable "medi_nr" speichern
+if (nr_block < 11 && nr_block > 5)
+medi_nr = 1;
+else if (nr_block > 11 && nr_block < 15)
+medi_nr = 2;
+else if (nr_block > 15 && nr_block < 19)
+medi_nr = 3;
+else if (nr_block > 50 && nr_block < 55)
+medi_nr = 4;
+else{
+}
+} // End of medi_nr = 0 loop
+PlaySound(SOUND_CLICK);
+Wait(300);
+//return Auwahl
+return medi_nr;
+} //End of always TRUE Loop
+}// End of select_medi function
+//**************************************************************
+//Funktionen für die Statistik und User-Authentifizierung
+string medi1[]; // 0=> mediID; 1 => mediName; 2 => Preis; 3 => anzahlVerkauft; 4 => anzahlVorhanden; 5 => Name, 6 => passwortpflicht
+string medi2[];
+string medi3[];
+string medi4[];
+//USER_Arrays
+string user1[]; // 0=> userID; 1 => userName; 2 => credit; 3 => orderedMedis; 4 => Password
+string user2[];
+string user3[];
+void setUpMedis(){
+//medi1
+ArrayBuild(medi1,"1","Asp","8.75","0","1","Aspirin","1");
+ArrayBuild(medi2,"2","Daf","15.75","0","1","Dafalgan","1");
+ArrayBuild(medi3,"3","Mit","5","0","3","MittelXX","0");
+ArrayBuild(medi4,"4","Bep","12.50","0","3","Bepanthen","0");
+}
+void setUpUsers(){
+//Starten mit User1
+ArrayBuild(user1,"95103148","Thomas","250.00","2","1234");
+//User2
+ArrayBuild(user2,"109239150","Marcel","20.00","1","3214");
+//user3
+ArrayBuild(user3,"10922588","Admin","180.00","none","1423");
+}
+string returnUsername(string userID){
+if(user1[0] == userID){
+return user1[1];
+}else if(user2[0] == userID){
+return user2[1];
+}else if(user3[0] == userID){
+return user3[1];
+}
+}
+string returnMediname(string mediID){
+if(medi1[0] == mediID){
+return medi1[5];
+}else if(medi2[0] == mediID){
+return medi2[5];
+}else if(medi3[0] == mediID){
+33
+return medi3[5];
+}else if(medi4[0] == mediID){
+return medi4[5];
+}
+}
+bool checkMedi(string mediID){
+if(medi1[0] == mediID){
+if(medi1[6] == "1"){
+return TRUE;
+}else{
+return FALSE;
+}
+}else if(medi2[0] == mediID){
+if(medi2[6] == "1"){
+return TRUE;
+}else{
+return FALSE;
+}
+}else if(medi3[0] == mediID){
+if(medi3[6] == "1"){
+return TRUE;
+}else{
+return FALSE;
+}
+}else if(medi4[0] == mediID){
+if(medi4[6] == "1"){
+return TRUE;
+}else{
+return FALSE;
+}
+}
+}
+int countMediStock(int mediID){
+if(medi1[0] == NumToStr(mediID)){
+return StrToNum(medi1[4]);
+}else if(medi2[0] == NumToStr(mediID)){
+return StrToNum(medi2[4]);
+}else if(medi3[0] == NumToStr(mediID)){
+return StrToNum(medi3[4]);
+}else if(medi4[0] == NumToStr(mediID)){
+return StrToNum(medi4[4]);
+}
+}
+void updateMediStock(int mediID){
+int sold;
+int stock;
+if(medi1[0] == NumToStr(mediID)){
+sold = StrToNum(medi1[3]);
+stock = StrToNum(medi1[4]);
+sold += 1;
+stock -= 1;
+medi1[3] = NumToStr(sold);
+medi1[4] = NumToStr(stock);
+}else if(medi2[0] == NumToStr(mediID)){
+sold = StrToNum(medi2[3]);
+stock = StrToNum(medi2[4]);
+sold += 1;
+stock -= 1;
+medi2[3] = NumToStr(sold);
+medi2[4] = NumToStr(stock);
+}else if(medi3[0] == NumToStr(mediID)){
+sold = StrToNum(medi3[3]);
+stock = StrToNum(medi3[4]);
+sold += 1;
+stock -= 1;
+medi3[3] = NumToStr(sold);
+medi3[4] = NumToStr(stock);
+}else if(medi4[0] == NumToStr(mediID)){
+sold = StrToNum(medi4[3]);
+stock = StrToNum(medi4[4]);
+sold += 1;
+stock -= 1;
+medi4[3] = NumToStr(sold);
+medi4[4] = NumToStr(stock);
+}
+}
+34
+//Ende der Statistik
+//**************************************************************
+//**************************************************************
+//Funktion zum Code eingeben
+string enterMediCode(){
+bool active = TRUE;
+int exit = 0;
+bool confirm = FALSE;
+int nr_block;
+string passcode = "";
+string stars = "";
+ButtonCount(BTNCENTER,TRUE);
+ButtonCount(BTNLEFT,TRUE);
+ButtonCount(BTNRIGHT,TRUE);
+ClearScreen();
+while(active == TRUE){
+if(exit == 0){
+TextOut(0, LCD_LINE1,"Bitte Passwort ");
+TextOut(0, LCD_LINE2,"eingeben ");
+TextOut(0, LCD_LINE4, passcode);
+}else if(exit == 1){
+TextOut(0, LCD_LINE1,"Abbruch mit");
+TextOut(0, LCD_LINE2,"Enter bestaetigen");
+TextOut(0, LCD_LINE4,"Links/Rechts für");
+TextOut(0, LCD_LINE5,"Zurück");
+passcode = "";
+stars = "";
+}else if(exit == 2){
+TextOut(0, LCD_LINE1,"Abbruch");
+return "abb";
+active = FALSE;
+passcode = "";
+stars = "";
+}
+// Nutzer zur Passworteingabe auffordern
+// Warten bis eine Taste gedrückt wird
+nr_block = 1024;
+until (nr_block < 1000){
+Wait(150);
+nr_block = Sensor(S1);
+}
+PlaySound(SOUND_CLICK);
+//Auswahl in Variable "medi_nr" speichern
+if (nr_block < 11 && nr_block > 5){
+passcode += "1";
+stars += "*";
+}else if (nr_block > 11 && nr_block < 15){
+passcode += "2";
+stars += "*";
+}else if (nr_block > 15 && nr_block < 19){
+passcode += "3";
+stars += "*";
+}else if (nr_block > 50 && nr_block < 55){
+passcode += "4";
+stars += "*";
+}else{}
+if(StrLen(passcode)==4){
+return passcode;
+Wait(400);
+active = FALSE;
+}
+//Mit Entertaste kann verlassen werden
+if(ButtonCount(BTNCENTER,FALSE)==1){
+exit += 1;
+35
+ButtonCount(BTNCENTER,TRUE);
+}
+if(ButtonCount(BTNLEFT,FALSE)==1 ||ButtonCount(BTNRIGHT,FALSE)==1){
+if(exit >0){
+exit -=1;
+ButtonCount(BTNLEFT,TRUE);
+ButtonCount(BTNRIGHT,TRUE);
+}
+}
+}
+}
+//************************************************************************
+bool checkMediCode(string medi_code, string cust_nr){
+if(user1[0] == cust_nr){
+if(user1[4] == medi_code){
+return TRUE;
+}else{
+return FALSE;
+}
+}else if(user2[0] == cust_nr){
+if(user2[4] == medi_code){
+return TRUE;
+}else{
+return FALSE;
+}
+}else if(user3[0] == cust_nr){
+if(user3[4] == medi_code){
+return TRUE;
+}else{
+return FALSE;
+}
+}else {
+return FALSE;
+}
+}
+//**************************************************************
+//**************************************************************
+bool checkuserpermission(string medi_nr, string cust_nr){
+if(user1[0] == cust_nr){
+if(user1[3] == medi_nr){
+return TRUE;
+}else{
+return FALSE;
+}
+}else if(user2[0] == cust_nr){
+if(user2[3] == medi_nr){
+return TRUE;
+}else{
+return FALSE;
+}
+}else if(user3[0] == cust_nr){
+if(user3[1] == medi_nr){
+return TRUE;
+}else{
+return FALSE;
+}
+}else {
+return FALSE;
+}
+}
+//**************************************************************
+//**************************************************************
+//Beginn Admin Stuff
+void adminHomeScreen(){
+TextOut(0, LCD_LINE1,"Admin ");
+TextOut(0, LCD_LINE2,"Infoseiten");
+TextOut(0, LCD_LINE4,"Links-Rechts");
+TextOut(0, LCD_LINE5,"zum navigieren");
+TextOut(0, LCD_LINE7,"Page 1/3");
+}
+36
+void adminPage1(){
+TextOut(0, LCD_LINE1,"Nam-Sto-Sol-Pri");
+TextOut(0, LCD_LINE2,StrCat(medi1[1]," -",medi1[4]," -",medi1[3]," -",medi1[2]));
+TextOut(0, LCD_LINE3,StrCat(medi2[1]," -",medi2[4]," -",medi2[3]," -",medi2[2]));
+TextOut(0, LCD_LINE4,"");
+TextOut(0, LCD_LINE5,"Links - Rechts");
+TextOut(0, LCD_LINE6,"zum navigieren");
+TextOut(0, LCD_LINE7,"Page 2/3");
+}
+void adminPage2(){
+TextOut(0, LCD_LINE1,"Nam-Sto-Sol-Pri");
+TextOut(0, LCD_LINE2,StrCat(medi3[1]," -",medi3[4]," -",medi3[3]," -",medi3[2]));
+TextOut(0, LCD_LINE3,StrCat(medi4[1]," -",medi4[4]," -",medi4[3]," -",medi4[2]));
+TextOut(0, LCD_LINE4,"");
+TextOut(0, LCD_LINE5,"Links - Rechts");
+TextOut(0, LCD_LINE6,"zum navigieren");
+TextOut(0, LCD_LINE7,"Page 3/3");
+}
+void adminExitConfirm(){
+TextOut(0, LCD_LINE1,"Beenden ");
+TextOut(0, LCD_LINE2,"mit center ");
+TextOut(0, LCD_LINE3,"Taste bestaetigen");
+TextOut(0, LCD_LINE4," ");
+TextOut(0, LCD_LINE5,"Links/Rechts ");
+TextOut(0, LCD_LINE6,"zum Abbrechen ");
+}
+void BrowseThroughAdminPage(){
+bool active = TRUE;
+int countLeftRightAdminMain = 0;
+int countEnterAdminMain = 0;
+while(active){
+if(countEnterAdminMain == 0){
+if(countLeftRightAdminMain == 0){
+adminHomeScreen();
+}else if(countLeftRightAdminMain == 1){
+adminPage1();
+}else if(countLeftRightAdminMain == 2){
+adminPage2();
+}
+}else if(countEnterAdminMain == 1){
+adminExitConfirm();
+}else{
+ClearScreen();
+TextOut(5,LCD_LINE3,"BYE!!");
+active = FALSE;
+PlayTone(440,250);
+PlaySound(SOUND_DOUBLE_BEEP);
+PlayTone(220,250);
+Wait(1000);
+}
+//Mit Rechts-Taste wird Seite gewechselt oder der Vorgang abgebrochen
+if(ButtonCount(BTNLEFT,FALSE)==1){
+if(countLeftRightAdminMain == 0){
+countLeftRightAdminMain = 2;
+ButtonCount(BTNLEFT,TRUE);
+ClearScreen();
+}else{
+countLeftRightAdminMain -=1;
+ButtonCount(BTNLEFT,TRUE);
+ClearScreen();
+}
+if (countEnterAdminMain ==1){
+countEnterAdminMain =0;
+}
+}
+//Mit Links-Taste wird Seite gewechselt oder der vorgang abgebrochen
+if(ButtonCount(BTNRIGHT,FALSE)==1){
+if(countLeftRightAdminMain == 2){
+countLeftRightAdminMain = 0;
+ButtonCount(BTNRIGHT,TRUE);
+ClearScreen();
+}else{
+countLeftRightAdminMain +=1;
+ButtonCount(BTNRIGHT,TRUE);
+ClearScreen();
+}
+37
+if (countEnterAdminMain ==1){
+countEnterAdminMain =0;
+}
+}
+//Mit Entertaste kann verlassen werden
+if(ButtonCount(BTNCENTER,FALSE)==1){
+countEnterAdminMain += 1;
+ButtonCount(BTNCENTER,TRUE);
+}
+}
+}
+//Ende vom Admin Stuff
+//**************************************************************
+string authenticate (){
+#define RFID IN_3
+RFIDInit(RFID);
+SetSensorLowspeed(RFID);
+byte key[5];
+string cust_nr_RFID;
+while(key[2]==0){
+ClearScreen();
+TextOut(0, LCD_LINE1, "Bitte mit");
+TextOut(0, LCD_LINE2, "Kundenkarte");
+TextOut(0, LCD_LINE3, "authentifizieren.");
+Wait(100);
+RFIDReadSingle(RFID, key);
+Wait(100);
+cust_nr_RFID = NumToStr(key[2]);
+cust_nr_RFID = strcat(cust_nr_RFID, NumToStr(key[3]));
+cust_nr_RFID = strcat(cust_nr_RFID, NumToStr(key[4]));
+}
+return cust_nr_RFID;
+}
+//******************************************************************
+bool auswurf (){
+int auswurfCompleted = 80;
+int counter = 0;
+SetSensor(S2, SENSOR_TOUCH);
+ClearScreen();
+TextOut(0,LCD_LINE1,"Medi wird");
+TextOut(0,LCD_LINE2,"ausgegeben");
+TextOut(0,LCD_LINE3,"Bitte Warten");
+//hier könnte man die bluetooth bestätigung einbauen. oder muss die im main sein?
+SendRemoteNumber(BT_CONN,OUTBOX,auswurfCompleted);
+until(BluetoothStatus(BT_CONN)==NO_ERR);
+until(ReceiveRemoteNumber(INBOX,true,counter)==NO_ERR);
+if(counter==250){
+//Wait(7500);
+ClearScreen();
+TextOut(0,LCD_LINE1,"Fertig!");
+TextOut(0,LCD_LINE2,"Bitte Medikament");
+TextOut(0,LCD_LINE3,"entnehmen");
+PlaySound(SOUND_UP);
+until(Sensor(S2) == 0);
+Wait(200);
+until(Sensor(S2) == 1);
+ClearScreen();
+TextOut(0,LCD_LINE1,"Besten Dank");
+TextOut(0,LCD_LINE2,"fuer Ihren");
+TextOut(0,LCD_LINE3,"Einkauf");
+PlaySound(SOUND_DOWN);
+Wait(3500);
+}else{
+38
+//Irgendwas ist schief gelaufen
+}
+}
+//******************************************************************
+task main (){
+setUpUsers();
+setUpMedis();
+int medi_nr;
+string medi_code = "";
+string cust_nr = "";
+while (TRUE){
+if(cust_nr ==""){
+cust_nr = authenticate();
+PlaySound(SOUND_DOUBLE_BEEP);
+}else{
+//
+//Abklären ob es sich um den Administrator handelt.
+//
+if(returnUsername(cust_nr)=="Admin"){
+ClearScreen();
+BrowseThroughAdminPage();
+cust_nr = "";
+}else{
+//
+//Wennes sich nicht um einen Administrator handelt, diesen Teil ausführen
+//
+ClearScreen();
+TextOut(0, LCD_LINE1, "Hallo " + returnUsername(cust_nr));
+TextOut(0, LCD_LINE2, "Bitte waehle");
+TextOut(0, LCD_LINE3, "dein Medikament");
+TextOut(0, LCD_LINE4, "mit dem");
+TextOut(0, LCD_LINE5, "Zahlenfeld");
+medi_nr = select_medi();
+//Abfrage Ob Code-Pflichtig
+//Wenn Code-Pflicht
+if(checkMedi(NumToStr(medi_nr))==TRUE){
+if (medi_code == ""){
+medi_code = enterMediCode();
+PlaySound(SOUND_LOW_BEEP);
+}
+if (medi_code =="abb"){
+medi_nr = 0;
+medi_code = "";
+}
+else if (checkMediCode(medi_code,cust_nr)==TRUE&&checkuserpermission(NumTo-Str(medi_nr),cust_nr)==TRUE&&countMediStock(medi_nr)>0) {
+ClearScreen();
+TextOut(0, LCD_LINE4,"Eingabe korrekt.");
+PlaySound(SOUND_UP);
+Wait(500);
+bluetooth_send(medi_nr);
+Wait(500);
+auswurf();
+//Datenbank updaten
+updateMediStock(medi_nr);
+//BenutzerDaten Löschen
+}
+else if (checkuserpermission(NumToStr(medi_nr),cust_nr)==FALSE){
+ClearScreen();
+TextOut(0,LCD_LINE1,"Fehlende");
+TextOut(0,LCD_LINE2,"Berechtigung!");
+TextOut(0,LCD_LINE3,"Alternative");
+TextOut(0,LCD_LINE4,"waehlen:");
+PlaySound(SOUND_LOW_BEEP);
+}
+39
+else if (countMediStock(medi_nr)==0) {
+ClearScreen();
+TextOut(0,LCD_LINE1,"OUT OF");
+TextOut(0,LCD_LINE2,"STOCK");
+TextOut(0,LCD_LINE3,"Alternative");
+TextOut(0,LCD_LINE4,"waehlen");;
+PlaySound(SOUND_LOW_BEEP);
+}
+else{
+ClearScreen();
+TextOut(0, LCD_LINE3, "Falsche Eingabe");
+TextOut(0, LCD_LINE4, "Bitte erneut");
+TextOut(0, LCD_LINE5, "versuchen");
+PlaySound(SOUND_LOW_BEEP);
+}
+medi_nr = 0;
+medi_code = "";
+cust_nr = "";
+Wait(3000);
+}
+//Wenn Nicht Code-Pflichtig
+else{
+//
+//Überprüfen ob an Vorrat
+//
+if(countMediStock(medi_nr)>0){
+//Ein Delay von 500MS bis Bluetooth Command gesendet wird
+bluetooth_send(medi_nr);
+//Medikamentauswurf
+auswurf();
+//Datenbank updaten
+updateMediStock(medi_nr);
+//BenutzerDaten Löschen
+medi_nr = 0;
+cust_nr = "";
+}else{
+ClearScreen();
+TextOut(0,LCD_LINE1,"OUT OF");
+TextOut(0,LCD_LINE2,"STOCK");
+TextOut(0,LCD_LINE3,"Alternative");
+TextOut(0,LCD_LINE4,"waehlen");
+PlaySound(SOUND_LOW_BEEP);
+Wait(2000);
+medi_nr = 0;
+cust_nr = "";
+}
+}
+}
+}
+}
+}
+Appendix B Quellcode „Slave“ NXT
+*/
+//Hier wird die Leistung der Motoren eingestellt
+#define powerM1 60
+#define powerM2 60
+#define powerM3 55
+//Hier werden die Werte für die Lichtsensoren initialisiert, damit sie anhand einer Zählfunktion
+//Ihre Position ermitteln können
+#define lightThreshold_1 55
+#define lightThreshold_2 50
+//Hier wird die Bluetooth Connection definiert mit den Inboxes und Outboxes
+#define BT_CONN 0
+40
+#define OUTBOX 2
+#define INBOX 1
+// hier wird die Orientierungshilfe für die Vertikale und Horizontale Position
+// des Auswurfmechanismus initiiert, die Werte werden mittels Bluetooth dem Programm übertragen
+int countHorizontal = 0;
+int countHorizontalTarget = 0;
+int countVertical = 0;
+int countVerticalTarget = 0;
+//hier wird der Wert der Bluetoothübertragung gespeichert, der der Ausstossmechanismus
+//zugesendet bekommt
+int BluetoothInput = -1;
+//Der Bool AuswurfDone ist eine Variable, die angibt, ob der Auswurf abgeschlossen wurde
+//oder noch nicht
+bool AuswurfDone = FALSE;
+void driveHorizontal(){
+until (countHorizontal == countHorizontalTarget){
+//Muss getestet werden ob onRev oder OnFwd
+OnFwd(OUT_A,powerM1);
+if(Sensor(S1) > lightThreshold_1){
+countHorizontal += 1;
+PlayTone(220,100);
+Wait(300);
+}
+}
+Off(OUT_A);
+}
+void driveHorizontalBack(){
+until (countHorizontal == 0){
+//Muss getestet werden ob onRev
+OnRev(OUT_A,powerM1);
+if(Sensor(S1) > lightThreshold_1){
+countHorizontal -= 1;
+PlayTone(420,100);
+Wait(300);
+}
+}
+Off(OUT_A);
+}
+void driveVertical(){
+until (countVertical == countVerticalTarget){
+//Muss getestet werden ob onRev oder OnFwd
+OnFwd(OUT_B,powerM2);
+if(Sensor(S2) > lightThreshold_2){
+countVertical += 1;
+PlayTone(220,100);
+Wait(400);
+}
+}
+Off(OUT_B);
+}
+void driveVerticalBack(){
+until (countVertical == 0){
+//Muss getestet werden ob onRev oder OnFwd
+OnRev(OUT_B,powerM2);
+if(Sensor(S2) > lightThreshold_2){
+countVertical -= 1;
+PlayTone(220,100);
+Wait(400);
+}
+}
+Off(OUT_B);
+}
+void ejectDrug(){
+OnFwd(OUT_C,powerM3);
+Wait(1400);
+OnRev(OUT_C,powerM3);
+41
+Wait(1400);
+Off(OUT_C);
+}
+void setDrugPosition(){
+//Medikament 1 ist an Position 0,0
+if (BluetoothInput == 1){
+countHorizontalTarget = 1;
+countVerticalTarget = 1;
+}
+//Medikament 2 ist an Position 0,1
+else if(BluetoothInput == 2){
+countHorizontalTarget = 2;
+countVerticalTarget = 1;
+}
+//Medikament 3 ist an Position 1,0
+else if(BluetoothInput == 3){
+countHorizontalTarget = 1;
+countVerticalTarget = 2;
+}
+//Medikament 4 ist an Position 1,1
+else if(BluetoothInput == 4){
+countHorizontalTarget = 2;
+countVerticalTarget = 2;
+}
+}
+//Hauptort der Ausführung des Programms
+task main(){
+SetSensorLight(S1);//Sensor für die horizontale Erkennung
+//SetSensor(S2,SENSOR_LIGHT);//Sensor für die vertikale Erkennung
+SetSensorLight(S2);
+while (TRUE){
+//1. Bluetooth verbindung überprüfen
+if(BluetoothStatus(BT_CONN)==NO_ERR){
+PlayTone(100,100);
+//1. Warten, bis eine Anweisung des Bluetooth-Masters kommt
+ClearScreen();
+TextOut(5,LCD_LINE1,"HELLO WORLD");
+TextOut(5,LCD_LINE2,NumToStr(BluetoothInput));
+until(ReceiveRemoteNumber(INBOX,true,BluetoothInput)==NO_ERR);
+TextOut(5,LCD_LINE3,NumToStr(BluetoothInput));
+if(BluetoothInput == -5){
+SendRemoteNumber(BT_CONN,OUTBOX,10);
+until(BluetoothStatus(BT_CONN)==NO_ERR);
+TextOut(5,LCD_LINE4,"Sent");
+Wait(1000);
+}
+if(BluetoothInput == 80 && AuswurfDone == TRUE){
+SendRemoteNumber(BT_CONN,OUTBOX,250);
+until(BluetoothStatus(BT_CONN)==NO_ERR);
+TextOut(5,LCD_LINE5,"Sent Complete");
+AuswurfDone = FALSE;
+BluetoothInput = -1;
+}
+if(BluetoothInput >= 1 & BluetoothInput < 10){
+SendRemoteNumber(BT_CONN,OUTBOX,20);
+until(BluetoothStatus(BT_CONN)==NO_ERR);
+setDrugPosition();
+countHorizontal = 0;
+countVertical = 0;
+//3. Entlang der Horizontalen fahren
+driveHorizontal();
+Wait(1000);
+//4. Entlang der Vertikalen fahren
+driveVertical();
+Wait(1000);
+//Medikament auswerfen
+ejectDrug();
+Wait(1000);
+//Zurück zum Ausgangsort fahren
+driveVerticalBack();
+Wait(1000);
+driveHorizontalBack();
+Wait(1000);
+BluetoothInput = -1;
+42
+AuswurfDone = TRUE;
+}
+}
+}
+}
