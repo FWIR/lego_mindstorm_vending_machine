@@ -1,0 +1,174 @@
+/* Auswurf-Wagen
+Autoren: Florian Wirth, Jérôme Studer
+
+*/
+//Hier wird die Leistung der Motoren eingestellt
+#define powerM1 60
+#define powerM2 60
+#define powerM3 55
+
+//Hier werden die Werte für die Lichtsensoren initialisiert, damit sie anhand einer Zählfunktion
+//Ihre Position ermitteln können
+#define lightThreshold_1 55
+#define lightThreshold_2 50
+
+//Hier wird die Bluetooth Connection definiert mit den Inboxes und Outboxes
+#define BT_CONN 0
+#define OUTBOX 2
+#define INBOX 1
+
+// hier wird die Orientierungshilfe für die Vertikale und Horizontale Position
+// des Auswurfmechanismus initiiert, die Werte werden mittels Bluetooth dem Programm übertragen
+int countHorizontal = 0;
+int countHorizontalTarget = 0;
+int countVertical = 0;
+int countVerticalTarget = 0;
+
+int BluetoothInput = -1;
+
+bool AuswurfDone = FALSE;
+
+
+
+
+void driveHorizontal(){
+  until (countHorizontal == countHorizontalTarget){
+    //Muss getestet werden ob onRev oder OnFwd
+    OnFwd(OUT_A,powerM1);
+    if(Sensor(S1) > lightThreshold_1){
+      countHorizontal += 1;
+      PlayTone(220,100);
+      Wait(300);
+    }
+  }
+  Off(OUT_A);
+}
+
+void driveHorizontalBack(){
+  until (countHorizontal == 0){
+    //Muss getestet werden ob onRev
+    OnRev(OUT_A,powerM1);
+    if(Sensor(S1) > lightThreshold_1){
+      countHorizontal -= 1;
+      PlayTone(420,100);
+      Wait(300);
+    }
+  }
+  Off(OUT_A);
+}
+
+
+void driveVertical(){
+  until (countVertical == countVerticalTarget){
+    //Muss getestet werden ob onRev oder OnFwd
+    OnFwd(OUT_B,powerM2);
+    if(Sensor(S2) > lightThreshold_2){
+      countVertical += 1;
+      PlayTone(220,100);
+      Wait(400);
+    }
+  }
+  Off(OUT_B);
+}
+
+void driveVerticalBack(){
+  until (countVertical == 0){
+    //Muss getestet werden ob onRev oder OnFwd
+    OnRev(OUT_B,powerM2);
+    if(Sensor(S2) > lightThreshold_2){
+      countVertical -= 1;
+      PlayTone(220,100);
+      Wait(400);
+    }
+  }
+  Off(OUT_B);
+  }
+
+void ejectDrug(){
+  OnFwd(OUT_C,powerM3);
+  Wait(1400);
+  OnRev(OUT_C,powerM3);
+  Wait(1400);
+  Off(OUT_C);
+}
+
+void setDrugPosition(){
+ //Medikament 1 ist an Position 0,0
+ if (BluetoothInput == 1){
+      countHorizontalTarget = 1;
+      countVerticalTarget = 1;
+ }
+ //Medikament 2 ist an Position 0,1
+ else if(BluetoothInput == 2){
+      countHorizontalTarget = 2;
+      countVerticalTarget = 1;
+ }
+ //Medikament 3 ist an Position 1,0
+ else if(BluetoothInput == 3){
+      countHorizontalTarget = 1;
+      countVerticalTarget = 2;
+ }
+ //Medikament 4 ist an Position 1,1
+  else if(BluetoothInput == 4){
+      countHorizontalTarget = 2;
+      countVerticalTarget = 2;
+ }
+}
+//Hauptort der Ausführung des Programms
+task main(){
+  SetSensorLight(S1);//Sensor für die horizontale Erkennung
+  //SetSensor(S2,SENSOR_LIGHT);//Sensor für die vertikale Erkennung
+  SetSensorLight(S2);
+  while (TRUE){
+     //1. Bluetooth verbindung überprüfen
+     if(BluetoothStatus(BT_CONN)==NO_ERR){
+         PlayTone(100,100);
+     //1. Warten, bis eine Anweisung des Bluetooth-Masters kommt
+
+         ClearScreen();
+         TextOut(5,LCD_LINE1,"HELLO WORLD");
+         TextOut(5,LCD_LINE2,NumToStr(BluetoothInput));
+         until(ReceiveRemoteNumber(INBOX,true,BluetoothInput)==NO_ERR);
+         TextOut(5,LCD_LINE3,NumToStr(BluetoothInput));
+
+         if(BluetoothInput == -5){
+          SendRemoteNumber(BT_CONN,OUTBOX,10);
+          until(BluetoothStatus(BT_CONN)==NO_ERR);
+          TextOut(5,LCD_LINE4,"Sent");
+          Wait(1000);
+         }
+         if(BluetoothInput == 80 && AuswurfDone == TRUE){
+           SendRemoteNumber(BT_CONN,OUTBOX,250);
+           until(BluetoothStatus(BT_CONN)==NO_ERR);
+           TextOut(5,LCD_LINE5,"Sent Complete");
+           AuswurfDone = FALSE;
+           BluetoothInput = -1;
+         }
+         if(BluetoothInput >= 1 & BluetoothInput < 10){
+           SendRemoteNumber(BT_CONN,OUTBOX,20);
+           until(BluetoothStatus(BT_CONN)==NO_ERR);
+           setDrugPosition();
+           countHorizontal = 0;
+           countVertical = 0;
+           //3. Entlang der Horizontalen fahren
+           driveHorizontal();
+           Wait(1000);
+           //4. Entlang der Vertikalen fahren
+           driveVertical();
+           Wait(1000);
+           //Medikament auswerfen
+           ejectDrug();
+           Wait(1000);
+           //Zurück zum Ausgangsort fahren
+           driveVerticalBack();
+           Wait(1000);
+           driveHorizontalBack();
+           Wait(1000);
+           BluetoothInput = -1;
+           AuswurfDone = TRUE;
+        }
+    }
+  }
+}
+
+
